@@ -7,12 +7,13 @@ use std::thread;
 use std::thread::JoinHandle;
 use std::collections::VecDeque;
 use std::sync::{mpsc};
+use std::ptr::null;
 
 fn handle_args(args: Vec<String>) -> (usize, usize)
 {
     let precision_default: u32 = 10000;
     //let max_thread = num_cpus::get();
-    let max_thread = 1;
+    let max_thread = 2;
     /*let max_thread = match cpuid::identify() {
         Ok(info) => info.num_logical_cpus,
         Err(err) => {
@@ -132,11 +133,10 @@ fn main() {
 
                     let previous_a = elements[(current_thread * amount_of_work_per_thread) as usize].clone();
                     let previous_index = last_calculated_index[current_thread as usize];
-                    channels.pop();
                     match tasks[current_thread as usize].pop_front(){
                         Some(next_task) =>{
                             let (sender, receiver) = mpsc::channel();
-                            channels.push(receiver);
+                            channels[current_thread] = receiver;
                             threads_handles[current_thread as usize] = thread::spawn(move ||{
                                 calculate_a_n_from_previous(&previous_a,
                                                             &previous_index,
