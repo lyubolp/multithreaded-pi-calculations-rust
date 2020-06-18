@@ -1,0 +1,13 @@
+[package]
+name = "multithreaded_pi_rust"
+version = "0.1.0"
+authors = ["Lyuboslav Karev <lyubo.karev@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rug = "*"
+num-bigint = "*"
+factorial = "*"
+num_cpus = "*"
