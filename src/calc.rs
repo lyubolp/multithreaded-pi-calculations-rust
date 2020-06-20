@@ -1,14 +1,9 @@
 pub mod pi_calculator {
     use rug::{Float};
     use rug::ops::Pow;
-    use factorial::Factorial;
-    use std::sync::{mpsc};
-    use std::sync::mpsc::{Sender, Receiver};
-    use std::thread;
-    use std::thread::JoinHandle;
-    use std::collections::VecDeque;
+    use std::sync::mpsc::{Sender};
 
-    pub static DEFAULT_PRECISION: u32 = 10000;
+    pub static DEFAULT_PRECISION: u32 = 100000;
 
     pub struct Task {
         start_index: u32,
@@ -25,28 +20,9 @@ pub mod pi_calculator {
                 sender
             }
         }
-        /*pub fn new(previous_element: Float, previous_index: u32, target_index: u32) -> Task {
-            let (sender, receiver) = mpsc::channel();
-            Task {
-                previous_element: previous_element.clone(),
-                previous_index: previous_index.clone(),
-                target_index: target_index.clone(),
-                sender: sender.clone(),
-                receiver: receiver.clone(),
-            }
-        }*/
-        /*pub fn start_thread(&self) -> JoinHandle<()> {
-            thread::spawn(move || {
-                calculate_a_n_from_previous(&self.previous_element,
-                                            &self.previous_index,
-                                            &self.target_index,
-                                            &DEFAULT_PRECISION,
-                                            self.sender.clone())
-            })
-        }*/
         pub fn work(&mut self){
 
-            let mut initial_element = Task::calculate_a_n_from_formula(self.start_index, DEFAULT_PRECISION);
+            let initial_element = Task::calculate_a_n_from_formula(self.start_index, DEFAULT_PRECISION);
             let mut result: Float = initial_element.clone();
             let mut previous: Float = initial_element.clone();
             for current_task in self.start_index+1..self.end_index + 1
@@ -56,7 +32,12 @@ pub mod pi_calculator {
                 result += temp.clone();
                 previous = temp.clone();
             }
-            self.sender.send(result);
+            match self.sender.send(result){
+                Err(_) => {
+                    println!("Error when sending the data");
+                }
+                _ => {}
+            }
         }
         fn calculate_a_n_from_formula(n: u32, precision: u32) -> Float
         {
@@ -110,5 +91,4 @@ pub mod pi_calculator {
             final_const * previous_a
         }
     }
-
 }
