@@ -9,70 +9,54 @@ use std::sync::{mpsc};
 use std::sync::mpsc::{Receiver};
 use std::time::Instant;
 
+use clap::{Arg, App};
 
-fn handle_args(args: Vec<String>) -> (usize, usize)
-{
-    let max_thread = num_cpus::get();
-    //max_thread = 2;
-    let mut result = (0usize, 0usize);
-    if args.len() == 5 {
-        if args[1] == String::from("-p")
-        {
-            match args[2].parse::<usize>() {
-                Ok(value) => result.0 = value,
-                Err(_) => {
-                    println!("Invalid argument for -p, setting it to default");
-                    result.0 = DEFAULT_PRECISION as usize;
-                }
-            }
-        }
-        if args[3] == String::from("-t") || args[3] == String::from("-tasks")
-        {
-            match args[4].parse::<usize>() {
-                Ok(value) => result.1 = value,
-                Err(_) => {
-                    println!("Invalid argument for -t, setting it to the max threads on the machine");
-                    result.1 = max_thread;
-                }
-            }
-        }
-    } else if args.len() == 3 {
-        if args[1] == String::from("-p")
-        {
-            match args[2].parse::<usize>() {
-                Ok(value) => result.0 = value,
-                Err(_) => {
-                    println!("Invalid argument for -p, setting it to default");
-                    result.0 = DEFAULT_PRECISION as usize;
-                }
-            }
-        }
-        result.1 = max_thread;
-    } else {
-        println!("Invalid command line arguments, setting the default values (-p {} -t {})", DEFAULT_PRECISION, max_thread);
-        result.0 = DEFAULT_PRECISION as usize;
-        result.1 = max_thread;
-    }
-    result
-}
 
 fn main() {
-    //let start_time = Instant::now();
-    let (amount_of_elements, thread_count) = handle_args(env::args().collect());
+    let matches = App::new("multithreaded-pi-calculations")
+        .version("1.0.0")
+        .arg(Arg::with_name("threads")
+            .short("t")
+            .long("threads")
+            .takes_value(true)
+            .help("Amount of threads"))
+        .arg(Arg::with_name("elements")
+            .short("e")
+            .long("elements")
+            .takes_value(true)
+            .help("Amount of elements"))
+        .get_matches();
+
+    static DEFAULT_THREADS: usize = 2;
+    static DEFAULT_ELEMENTS: usize = 100000;
+
+    let thread_count: usize = match matches.value_of("threads") {
+        Some(value) => {
+            value.parse::<usize>().unwrap_or(DEFAULT_THREADS)
+        }
+        None => DEFAULT_THREADS
+    };
+
+    let amount_of_elements: usize = match matches.value_of("elements") {
+        Some(value) => {
+            value.parse::<usize>().unwrap_or(DEFAULT_ELEMENTS)
+        }
+        None => DEFAULT_ELEMENTS
+    };
+
     println!("Starting the program with {} elements to be calculated on {} threads", amount_of_elements, thread_count);
 
     let mut result = Float::with_val(DEFAULT_PRECISION, 0);
     let mut task_tuples: VecDeque<(u32, u32)> = VecDeque::new();
-    let amount_of_work_per_thread = (amount_of_elements / thread_count) / 2;
-    //let mut timers: Vec<Instant> = vec!();
+    let amount_divisor: usize = 2;
+    let amount_of_work_per_thread = (amount_of_elements / thread_count) / amount_divisor;
 
-    for start_task in (0..amount_of_elements).step_by(amount_of_work_per_thread){
+    for start_task in (0..amount_of_elements).step_by(amount_of_work_per_thread) {
         let end_index: u32 = {
             if start_task + amount_of_work_per_thread < amount_of_elements
             {
                 start_task + amount_of_work_per_thread - 1
-            }
-            else{
+            } else {
                 amount_of_elements - 1
             }
         } as u32;
@@ -86,8 +70,7 @@ fn main() {
         let (sender, receiver) = mpsc::channel();
         let (start, end) = task_tuples.pop_front().unwrap();
         let mut current_task = Task::new(start, end, sender);
-        //timers.push(Instant::now());
-        thread::spawn(move ||{
+        thread::spawn(move || {
             println!("Thread-{} has started working", current_thread);
             current_task.work();
         });
@@ -95,19 +78,17 @@ fn main() {
     }
     while calculated_elements < (amount_of_elements as u32)
     {
-        for current_thread in 0..thread_count{
-            match receivers[current_thread].try_recv(){
+        for current_thread in 0..thread_count {
+            match receivers[current_thread].try_recv() {
                 Ok(result_from_thread) => {
                     println!("Thread-{} has stoped working", current_thread);
-                    //println!("Thread-{}'s time is {:?}", current_thread, timers[current_thread].elapsed());
                     result += result_from_thread.clone();
                     calculated_elements += amount_of_work_per_thread as u32;
                     let (sender, receiver) = mpsc::channel();
-                    match task_tuples.pop_front(){
+                    match task_tuples.pop_front() {
                         Some((start, end)) => {
                             let mut current_task = Task::new(start, end, sender);
-                            //timers[current_thread] = Instant::now();
-                            thread::spawn(move ||{
+                            thread::spawn(move || {
                                 println!("Thread-{} has started working", current_thread);
                                 current_task.work();
                             });
@@ -117,11 +98,13 @@ fn main() {
                             break;
                         }
                     };
-                },
+                }
                 Err(_) => continue,
             };
         }
     }
-    println!("{}", 1 / result);
-    //println!("End time is {:?}", start_time.elapsed());
+    let final_result: Float = Float::with_val(DEFAULT_PRECISION, 1) / result;
+    println!("{}", 1 / final_result.clone());
+
+    println!("Pi is {:.5}", final_result);
 }
