@@ -28,7 +28,7 @@ fn main() {
         .get_matches();
 
     static DEFAULT_THREADS: usize = 2;
-    static DEFAULT_ELEMENTS: usize = 100000;
+    static DEFAULT_ELEMENTS: usize = 10000;
 
     let thread_count: usize = match matches.value_of("threads") {
         Some(value) => {
@@ -104,7 +104,6 @@ fn main() {
         }
     }
     let final_result: Float = Float::with_val(DEFAULT_PRECISION, 1) / result;
-    println!("{}", 1 / final_result.clone());
 
     println!("Pi is {:.5}", final_result);
 }

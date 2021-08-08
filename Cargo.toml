@@ -8,7 +8,4 @@ edition = "2018"
 
 [dependencies]
 rug = "*"
-num-bigint = "*"
-factorial = "*"
-num_cpus = "*"
 clap = "*"
